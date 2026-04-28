@@ -13,14 +13,17 @@ struct PomodoroView: View {
     @EnvironmentObject var vm: BoringViewModel
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Phase indicator
-            HStack {
+        VStack(spacing: 6) {
+            // Phase indicator + sessions
+            HStack(spacing: 8) {
                 ForEach([PomodoroManager.PomodoroPhase.work, .shortBreak, .longBreak], id: \.self) { phase in
                     Text(phase.rawValue)
-                        .font(.caption)
+                        .font(.system(size: 9))
                         .foregroundColor(pomodoroManager.currentPhase == phase ? .white : .gray)
                 }
+                Text("• \(pomodoroManager.sessionsCompleted)")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.gray)
             }
 
             // Circular progress + time
@@ -43,11 +46,11 @@ struct PomodoroView: View {
                         .foregroundStyle(.gray)
 
                     Text(pomodoroManager.formattedTime)
-                        .font(.system(size: 28, weight: .bold, design: .monospaced))
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
                 }
             }
-            .frame(width: 140, height: 140)
+            .frame(width: 90, height: 90)
 
             // Controls
             HStack(spacing: 20) {
@@ -78,15 +81,8 @@ struct PomodoroView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
             }
-
-            // Session count
-            HStack {
-                Text("Sessions: \(pomodoroManager.sessionsCompleted)")
-                    .font(.caption2)
-                    .foregroundStyle(.gray)
-            }
         }
-        .padding(20)
+        .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
