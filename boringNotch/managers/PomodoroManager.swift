@@ -111,6 +111,20 @@ class PomodoroManager: ObservableObject {
         }
     }
 
+    func resetSessions() {
+        sessionsCompleted = 0
+    }
+
+    func resetAll() {
+        timer?.invalidate()
+        timer = nil
+        isRunning = false
+        isPaused = false
+        currentPhase = .work
+        sessionsCompleted = 0
+        remainingSeconds = workDuration * 60
+    }
+
     func skip() {
         timer?.invalidate()
         timer = nil
