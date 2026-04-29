@@ -3,6 +3,7 @@
 //  boringNotch
 //
 //  Created by Claw on 2026-04-28.
+//  Modified to match NotchHomeView layout style.
 //
 
 import Defaults
@@ -13,7 +14,7 @@ struct PomodoroView: View {
     @EnvironmentObject var vm: BoringViewModel
     @State private var showSettings = false
 
-    // Local copies bound to steippers
+    // Local copies bound to steppers
     @State private var workMins: Int = Defaults[.pomodoroWorkDuration]
     @State private var shortMins: Int = Defaults[.pomodoroShortBreakDuration]
     @State private var longMins: Int = Defaults[.pomodoroLongBreakDuration]
@@ -34,6 +35,23 @@ struct PomodoroView: View {
     // MARK: - Main Timer View
 
     private var mainContent: some View {
+        HStack(alignment: .top, spacing: 15) {
+            // Left spacer to match MusicPlayerView layout (album art section)
+            Color.clear
+                .frame(width: 60, height: 60)
+
+            // Center timer content
+            timerContent
+                .frame(maxWidth: .infinity)
+
+            // Right spacer for balance
+            Color.clear
+                .frame(width: 60, height: 60)
+        }
+        .padding(.horizontal, 10)
+    }
+
+    private var timerContent: some View {
         VStack(spacing: 6) {
             // Phase indicator + sessions + gear
             HStack(spacing: 8) {
@@ -120,7 +138,6 @@ struct PomodoroView: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(10)
     }
 
     // MARK: - Settings Panel
