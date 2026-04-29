@@ -12,29 +12,8 @@ import SwiftUI
 struct PomodoroView: View {
     @ObservedObject var pomodoroManager = PomodoroManager.shared
     @EnvironmentObject var vm: BoringViewModel
-    @State private var showSettings = false
-
-    // Local copies bound to steppers
-    @State private var workMins: Int = Defaults[.pomodoroWorkDuration]
-    @State private var shortMins: Int = Defaults[.pomodoroShortBreakDuration]
-    @State private var longMins: Int = Defaults[.pomodoroLongBreakDuration]
-    @State private var sessions: Int = Defaults[.pomodoroSessionsBeforeLongBreak]
 
     var body: some View {
-        VStack(spacing: 0) {
-            if !showSettings {
-                mainContent
-            } else {
-                settingsContent
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .background(Color.clear)
-    }
-
-    // MARK: - Main Timer View
-
-    private var mainContent: some View {
         HStack(alignment: .top, spacing: 15) {
             // Left spacer to match MusicPlayerView layout (album art section)
             Color.clear
@@ -53,33 +32,44 @@ struct PomodoroView: View {
 
     private var timerContent: some View {
         VStack(spacing: 6) {
-            // Phase indicator + sessions + gear
+            // Phase indicator + sessions + reset button
             HStack(spacing: 8) {
                 ForEach([PomodoroManager.PomodoroPhase.work, .shortBreak, .longBreak], id: \.self) { phase in
                     Text(phase.rawValue)
                         .font(.system(size: 9))
                         .foregroundColor(pomodoroManager.currentPhase == phase ? .white : .gray)
                 }
-                Text("• \(pomodoroManager.sessionsCompleted)")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.gray)
+
+                // Sessions counter with reset capability
+                Button(action: {
+                    // Long press or double click to reset
+                }) {
+                    HStack(spacing: 2) {
+                        Text("• \(pomodoroManager.sessionsCompleted)")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.gray)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: 0.8)
+                        .onEnded { _ in
+                            pomodoroManager.resetSessions()
+                        }
+                )
 
                 Spacer()
 
+                // Reset all button
                 Button(action: {
-                    workMins = Defaults[.pomodoroWorkDuration]
-                    shortMins = Defaults[.pomodoroShortBreakDuration]
-                    longMins = Defaults[.pomodoroLongBreakDuration]
-                    sessions = Defaults[.pomodoroSessionsBeforeLongBreak]
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showSettings.toggle()
-                    }
+                    pomodoroManager.resetAll()
                 }) {
-                    Text("⚙️")
-                        .font(.system(size: 12))
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 11))
                         .foregroundStyle(.gray)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .help("Reset all")
             }
 
             // Circular progress + time
@@ -137,99 +127,6 @@ struct PomodoroView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
             }
-        }
-    }
-
-    // MARK: - Settings Panel
-
-    private var settingsContent: some View {
-        VStack(spacing: 8) {
-            // Header with back button
-            HStack {
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showSettings.toggle()
-                    }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.gray)
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                Text("Pomodoro Settings")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white)
-
-                Spacer()
-            }
-
-            // Duration rows
-            VStack(spacing: 6) {
-                settingRow(label: "Work", value: $workMins, range: 1...90)
-                settingRow(label: "Short Break", value: $shortMins, range: 1...30)
-                settingRow(label: "Long Break", value: $longMins, range: 1...60)
-                settingRow(label: "Sessions", value: $sessions, range: 1...10)
-            }
-        }
-        .padding(10)
-    }
-
-    // MARK: - Setting Row
-
-    private func settingRow(label: String, value: Binding<Int>, range: ClosedRange<Int>) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 10))
-                .foregroundStyle(.gray)
-                .frame(width: 70, alignment: .leading)
-
-            Spacer()
-
-            HStack(spacing: 6) {
-                Button(action: { value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1) }) {
-                    Image(systemName: "minus")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.gray)
-                        .frame(width: 20, height: 20)
-                        .background(Color.gray.opacity(0.2))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                Text("\(value.wrappedValue)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white)
-                    .frame(minWidth: 20)
-
-                Button(action: { value.wrappedValue = min(range.upperBound, value.wrappedValue + 1) }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.gray)
-                        .frame(width: 20, height: 20)
-                        .background(Color.gray.opacity(0.2))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-        }
-        .onChange(of: value.wrappedValue) { newValue in
-            saveSetting(for: label, value: newValue)
-        }
-    }
-
-    private func saveSetting(for label: String, value: Int) {
-        switch label {
-        case "Work":
-            Defaults[.pomodoroWorkDuration] = value
-        case "Short Break":
-            Defaults[.pomodoroShortBreakDuration] = value
-        case "Long Break":
-            Defaults[.pomodoroLongBreakDuration] = value
-        case "Sessions":
-            Defaults[.pomodoroSessionsBeforeLongBreak] = value
-        default:
-            break
         }
     }
 

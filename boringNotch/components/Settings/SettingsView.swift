@@ -51,6 +51,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Shelf") {
                     Label("Shelf", systemImage: "books.vertical")
                 }
+                NavigationLink(value: "Pomodoro") {
+                    Label("Pomodoro", systemImage: "timer")
+                }
                 NavigationLink(value: "Shortcuts") {
                     Label("Shortcuts", systemImage: "keyboard")
                 }
@@ -85,6 +88,8 @@ struct SettingsView: View {
                     Charge()
                 case "Shelf":
                     Shelf()
+                case "Pomodoro":
+                    PomodoroSettings()
                 case "Shortcuts":
                     Shortcuts()
                 case "Extensions":
@@ -906,6 +911,64 @@ struct About: View {
             CheckForUpdatesView(updater: updaterController.updater)
         }
         .navigationTitle("About")
+    }
+}
+
+struct PomodoroSettings: View {
+    @Default(.pomodoroEnabled) var pomodoroEnabled: Bool
+    @Default(.pomodoroWorkDuration) var pomodoroWorkDuration: Int
+    @Default(.pomodoroShortBreakDuration) var pomodoroShortBreakDuration: Int
+    @Default(.pomodoroLongBreakDuration) var pomodoroLongBreakDuration: Int
+    @Default(.pomodoroSessionsBeforeLongBreak) var pomodoroSessionsBeforeLongBreak: Int
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Enable Pomodoro Timer", isOn: $pomodoroEnabled)
+                    .tint(.effectiveAccent)
+            } header: {
+                Text("General")
+            }
+
+            Section {
+                Stepper("Work Duration: \(pomodoroWorkDuration) min", value: $pomodoroWorkDuration, in: 1...90)
+                Stepper("Short Break: \(pomodoroShortBreakDuration) min", value: $pomodoroShortBreakDuration, in: 1...30)
+                Stepper("Long Break: \(pomodoroLongBreakDuration) min", value: $pomodoroLongBreakDuration, in: 1...60)
+                Stepper("Sessions before Long Break: \(pomodoroSessionsBeforeLongBreak)", value: $pomodoroSessionsBeforeLongBreak, in: 1...10)
+            } header: {
+                Text("Timer Durations")
+            }
+
+            Section {
+                HStack {
+                    Text("Work")
+                    Spacer()
+                    Text("\(pomodoroWorkDuration) min")
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("Short Break")
+                    Spacer()
+                    Text("\(pomodoroShortBreakDuration) min")
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("Long Break")
+                    Spacer()
+                    Text("\(pomodoroLongBreakDuration) min")
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("Total Cycle")
+                    Spacer()
+                    Text("\(pomodoroWorkDuration + pomodoroShortBreakDuration) min × \(pomodoroSessionsBeforeLongBreak) + \(pomodoroLongBreakDuration) min")
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Current Settings Summary")
+            }
+        }
+        .navigationTitle("Pomodoro")
     }
 }
 
