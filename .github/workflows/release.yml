@@ -147,7 +147,7 @@ jobs:
         with:
           body: "Dev build from ${{ github.sha }} — for testing only"
           files: boringNotch-dev.dmg
-          tag: "dev-latest"
+          tag_name: "dev-latest"
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -157,6 +157,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: boringNotch.dmg
-          tag: ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
