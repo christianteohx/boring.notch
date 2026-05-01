@@ -2,6 +2,9 @@ name: "Release"
 
 on:
   push:
+    branches:
+      - main
+      - dev
     tags:
       - 'v*'
   workflow_dispatch:
@@ -13,8 +16,11 @@ on:
 permissions:
   contents: write
 
+env:
+  IS_DEV_BUILD: ${{ github.ref == 'refs/heads/dev' }}
+
 jobs:
-  release:
+  build:
     runs-on: macos-latest
     env:
       PROJECT_NAME: boringNotch
@@ -38,7 +44,12 @@ jobs:
       - name: Get version
         id: version
         run: |
-          TAG=${GITHUB_REF#refs/tags/}
+          if [[ "${{ env.IS_DEV_BUILD }}" == "true" ]]; then
+            # For dev builds, use branch name + date
+            TAG="dev-$(date +%Y%m%d-%H%M%S)"
+          else
+            TAG=${GITHUB_REF#refs/tags/}
+          fi
           echo "version=$TAG" >> $GITHUB_OUTPUT
 
       - name: Resolve Swift packages
@@ -86,6 +97,17 @@ EOF
           codesign --force --sign - "Release/${{ env.PROJECT_NAME }}.app" 2>/dev/null || true
           echo "Done."
 
+      - name: Rename app for dev builds
+        if: env.IS_DEV_BUILD == 'true'
+        run: |
+          mv "Release/${{ env.PROJECT_NAME }}.app" "Release/${{ env.PROJECT_NAME }}-dev.app"
+          echo "APP_NAME=${{ env.PROJECT_NAME }}-dev" >> $GITHUB_ENV
+
+      - name: Rename app for prod builds
+        if: env.IS_DEV_BUILD != 'true'
+        run: |
+          echo "APP_NAME=${{ env.PROJECT_NAME }}" >> $GITHUB_ENV
+
       - name: Create DMG
         run: |
           VENV_DIR="$RUNNER_TEMP/venv"
@@ -95,14 +117,46 @@ EOF
           python3 -m pip install --require-hashes -r Configuration/dmg/requirements.txt
           chmod +x Configuration/dmg/create_dmg.sh
           ./Configuration/dmg/create_dmg.sh \
-            "Release/${{ env.PROJECT_NAME }}.app" \
-            "Release/${{ env.PROJECT_NAME }}.dmg" \
-            "${{ env.PROJECT_NAME }}"
+            "Release/${{ env.APP_NAME }}.app" \
+            "Release/${{ env.APP_NAME }}.dmg" \
+            "${{ env.APP_NAME }}"
 
-      - name: Create Release
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: boringNotch-dmg
+          path: Release/${{ env.APP_NAME }}.dmg
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: macos-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: boringNotch-dmg
+          path: .
+      - name: List files
+        run: ls -la
+
+      - name: Create Release (dev)
+        if: env.IS_DEV_BUILD == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          files: Release/${{ env.PROJECT_NAME }}.dmg
+          body: "Dev build from ${{ github.sha }} — for testing only"
+          files: boringNotch-dev.dmg
+          tag: "dev-latest"
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release (prod)
+        if: env.IS_DEV_BUILD != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: boringNotch.dmg
           tag: ${{ github.event.inputs.tag || github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
