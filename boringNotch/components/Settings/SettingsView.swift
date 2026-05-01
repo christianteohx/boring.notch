@@ -1043,12 +1043,10 @@ struct About: View {
                     Text("Version info")
                 }
 
-                UpdaterSettingsView(updater: updaterController.updater)
-
                 HStack(spacing: 30) {
                     Spacer(minLength: 0)
                     Button {
-                        if let url = URL(string: "https://github.com/TheBoredTeam/boring.notch") {
+                        if let url = URL(string: "https://github.com/christianteohx/boring.notch") {
                             NSWorkspace.shared.open(url)
                         }
                     } label: {
@@ -1081,7 +1079,7 @@ struct About: View {
             //                openWindow(id: "onboarding")
             //            }
             //            .controlSize(.extraLarge)
-            CheckForUpdatesView(updater: updaterController.updater)
+            CheckForUpdatesView()
         }
         .navigationTitle("About")
     }
