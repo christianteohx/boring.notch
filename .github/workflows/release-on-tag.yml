@@ -93,9 +93,28 @@ EOF
             "Release/${{ env.PROJECT_NAME }}.dmg" \
             "${{ env.PROJECT_NAME }}"
 
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: boringNotch-dmg
+          path: Release/${{ env.PROJECT_NAME }}.dmg
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: boringNotch-dmg
+          path: .
+      - name: List files
+        run: ls -la
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Release/${{ env.PROJECT_NAME }}.dmg
+          files: boringNotch.dmg
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
