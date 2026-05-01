@@ -469,36 +469,58 @@ struct NumberTextField: NSViewRepresentable {
         textField.target = context.coordinator
         textField.action = #selector(Coordinator.textFieldAction(_:))
         textField.bezelStyle = .roundedBezel
+        textField.delegate = context.coordinator
         return textField
     }
 
     func updateNSView(_ nsView: NSTextField, context: Context) {
-        nsView.integerValue = value
-        context.coordinator.value = value
+        // Only update from binding if the text field is NOT currently being edited
+        // This prevents overwriting the user's input while typing
+        if !context.coordinator.isEditing {
+            nsView.integerValue = value
+        }
         context.coordinator.range = range
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(value: value, range: range)
+        Coordinator(binding: $value, range: range)
     }
 
-    class Coordinator: NSObject {
-        var value: Int
+    class Coordinator: NSObject, NSTextFieldDelegate {
+        var binding: Binding<Int>  // Reference to the SwiftUI binding
         var range: ClosedRange<Int>
+        var isEditing: Bool = false
 
-        init(value: Int, range: ClosedRange<Int>) {
-            self.value = value
+        init(binding: Binding<Int>, range: ClosedRange<Int>) {
+            self.binding = binding
             self.range = range
         }
 
+        // Track when editing begins
+        func controlTextDidBeginEditing(_ obj: Notification) {
+            isEditing = true
+        }
+
+        // Track when editing ends (Enter, Tab, or click away)
+        func controlTextDidEndEditing(_ obj: Notification) {
+            isEditing = false
+            if let textField = obj.object as? NSTextField {
+                commitValue(from: textField)
+            }
+        }
+
         @objc func textFieldAction(_ sender: NSTextField) {
+            commitValue(from: sender)
+        }
+
+        private func commitValue(from sender: NSTextField) {
             var newValue = sender.integerValue
             if newValue < range.lowerBound {
                 newValue = range.lowerBound
             } else if newValue > range.upperBound {
                 newValue = range.upperBound
             }
-            value = newValue
+            binding.wrappedValue = newValue
             sender.integerValue = newValue
         }
     }
